@@ -4,6 +4,15 @@ This workspace now contains a minimal runnable prototype of the structural-surro
 
 The prototype does not estimate true all-cause mortality. It evaluates whether explicit surrogate formulas behave like credible mortality-risk proxies under structural tests.
 
+## Strongest Public NHANES Validation
+
+The strongest public result in this workspace comes from `NHANES 2009-2010` with linked mortality follow-up through `2019`.
+
+- out-of-fold discrimination is real rather than trivial: c-statistic `0.7592` for `surrogate_score` and `0.7538` for `bio_age`
+- risk stratification is directionally clean: out-of-fold mortality rises across bio-age quartiles from `0.0095` in Q1 to `0.1458` in Q4
+
+These results do not establish clinical validity, but they do suggest that the clock captures nontrivial mortality-related signal in a public cohort.
+
 ## Current Mathematical Formula
 
 The current biological-age clock is an eight-domain monotone logistic model. Let
