@@ -44,7 +44,7 @@ $$
 R = \frac{20}{1 + e^{-z}},
 $$
 
-so that \(R \in (0, 20)\).
+so that $R \in (0, 20)$.
 
 Biological age is not represented by a further fixed closed-form expression in the current implementation. Instead, after computing \(R\), the pipeline fits a monotone isotonic calibration map \(g\) from surrogate score to chronological age in the reference cohort and defines biological age as
 
