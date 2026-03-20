@@ -4,38 +4,69 @@ This workspace now contains a minimal runnable prototype of the structural-surro
 
 The prototype does not estimate true all-cause mortality. It evaluates whether explicit surrogate formulas behave like credible mortality-risk proxies under structural tests.
 
-## Files
+## Current Mathematical Formula
 
-- `formulas.py`: implements the paper's three candidate formulas and the Section 9 logistic family.
-- `sampler.py`: defines the plausible biomarker domain, curated profile pairs, and random dominance pairs.
-- `verification.py`: scores formulas for monotonicity, pair ordering, smoothness, bounds, and consistency.
-- `run_baseline.py`: compares the built-in formulas and prints a structural score report.
-- `clock_variable_spec.py`: locks the first multi-system ACM-oriented panel, proxy rules, and dataset mappings.
-- `ukb_variable_map.md`: defines the richer UK Biobank-first mapping and expected export inputs.
-- `dataset_feasibility_audit.md`: compares `NHANES` and `UK Biobank` for the first biological-age build.
-- `dataset_variable_map.md`: freezes the first implementation-ready public dataset path and raw column transforms.
-- `prototype_generalization_plan.md`: defines how to evolve the current 4-variable prototype into the expanded panel.
-- `age_calibration_plan.md`: defines how the surrogate score will be mapped to `bio_age` and `age_acceleration`.
-- `clock_features.py`: defines the harmonized 8-domain clock profile and field metadata.
-- `clock_formulas.py`: implements expanded-panel surrogate formula families.
-- `clock_sampler.py`: creates synthetic expanded-panel profiles and dominance pairs.
-- `clock_verification.py`: evaluates expanded-panel formulas under structural validity rules.
-- `run_clock_baseline.py`: compares the expanded-panel formulas on synthetic profiles.
-- `nhanes_loader.py`: merges and harmonizes raw NHANES component CSVs into the clock input space.
-- `ukb_loader.py`: harmonizes UK Biobank exports into the same clock-ready format.
-- `convert_xpt_to_csv.py`: converts downloaded NHANES SAS XPT files into CSVs for the harmonizer.
-- `prepare_nhanes_harmonized.py`: CLI to build a harmonized NHANES CSV.
-- `prepare_ukb_harmonized.py`: CLI to build a harmonized UK Biobank CSV.
-- `ukb_export_manifest.json`: machine-readable checklist of required and preferred UK Biobank export fields.
-- `calibration.py`: fits a monotone score-to-age calibration and emits `bio_age` and `age_acceleration`.
-- `run_clock_calibration.py`: CLI to calibrate a harmonized dataset or a synthetic demo, with optional out-of-fold scoring.
-- `real_nhanes_run_summary.md`: records the first real public-data run and its cohort limitations.
-- `public_clock_loader.py`: builds the stronger modern public NHANES clock cohort with real spirometry and direct ApoB/CRP.
-- `prepare_public_clock.py`: CLI for the stronger public clock path.
-- `real_public_clock_summary.md`: records the strongest runnable public-only clock built in this workspace.
-- `mortality_validation.py`: joins scored public clock outputs to NHANES linked mortality and computes validation summaries.
-- `run_public_mortality_validation.py`: CLI for mortality validation of the public clock.
-- `run_tabular_outcome_validation.py`: CLI for validating a scored cohort against a generic tabular outcome file.
+The main clock currently used in this repo is the expanded-panel logistic formula implemented in `clock_formulas.py`.
+
+It first converts each domain into a signed standardized offset from a healthy reference state:
+
+```text
+fitness_offset = (45 - fitness) / 10
+waist_offset = (waist_to_height_ratio - 0.48) / 0.08
+hba1c_offset = (hba1c - 5.3) / 0.5
+apob_offset = (apob - 110) / 30
+sbp_offset = (systolic_bp - 115) / 15
+kidney_offset = (kidney_function - 0.85) / 0.25
+crp_offset = (crp - 1.0) / 1.5
+lung_offset = (3.5 - fev1) / 0.6
+```
+
+where larger offsets indicate worse physiologic status relative to the reference values.
+
+Those offsets are combined into the linear predictor:
+
+```text
+z =
+  -4.3
+  + 0.9  * fitness_offset
+  + 0.7  * waist_offset
+  + 0.8  * hba1c_offset
+  + 0.5  * apob_offset
+  + 0.45 * sbp_offset
+  + 0.8  * kidney_offset
+  + 0.35 * crp_offset
+  + 0.75 * lung_offset
+  + 0.12 * waist_offset * hba1c_offset
+  + 0.10 * kidney_offset * sbp_offset
+  + 0.08 * crp_offset * lung_offset
+```
+
+The raw clock output is then:
+
+```text
+surrogate_score = 20 / (1 + exp(-z))
+```
+
+This yields a bounded score on the interval `(0, 20)`.
+
+The exported biological age is not produced by a fixed closed-form equation. Instead, `calibration.py` fits a monotone isotonic mapping from `surrogate_score` to chronological age in the reference cohort:
+
+```text
+bio_age = isotonic_map(surrogate_score)
+```
+
+The exported age acceleration is then computed as the residual from the linear fit of biological age on chronological age:
+
+```text
+expected_bio_age = intercept + slope * chronological_age
+age_acceleration = bio_age - expected_bio_age
+```
+
+In other words, the complete implemented pipeline is:
+
+```text
+biomarkers -> standardized offsets -> z -> surrogate_score -> isotonic calibration -> bio_age -> residualization -> age_acceleration
+```
 
 ## How To Run
 
