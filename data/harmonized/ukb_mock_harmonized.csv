@@ -1,0 +1,4 @@
+SEQN,chronological_age,central_adiposity_proxy,atherogenic_proxy,lung_proxy,fitness,central_adiposity,glycemia,atherogenic_burden,hemodynamic_stress,kidney_function,inflammation,lung_function
+1001,55.000000,visceral_adipose_tissue_equivalent,apoB_equivalent,FEV1,42.500000,0.496000,5.400000,112.400000,119.000000,0.880000,1.200000,3.400000
+1002,63.000000,waist_to_height_ratio,apoB_equivalent,FVC_equivalent,31.000000,0.598837,6.100000,155.600000,142.000000,1.210000,3.800000,2.900000
+1003,47.000000,waist_to_height_ratio,non_HDL_cholesterol,FEV1,48.200000,0.443820,5.100000,152.000000,111.000000,0.760000,0.700000,3.900000

@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import argparse
 
-from calibration import calibrate_biological_age, synthetic_demo_participants, write_scored_csv
+from calibration import calibrate_biological_age, calibrate_biological_age_oof, synthetic_demo_participants, write_scored_csv
 from clock_formulas import named_clock_formulas
-from nhanes_loader import load_harmonized_csv
+from harmonized_dataset import load_harmonized_csv
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -13,6 +13,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--output", help="Optional output CSV path for scored participants.")
     parser.add_argument("--formula", default="Clock_logistic_default", choices=sorted(named_clock_formulas().keys()))
     parser.add_argument("--synthetic-demo", type=int, help="Use synthetic demo participants instead of a real harmonized dataset.")
+    parser.add_argument("--oof-folds", type=int, default=0, help="Use out-of-fold calibration with the given number of folds.")
+    parser.add_argument("--seed", type=int, default=42, help="Random seed for out-of-fold splits.")
     return parser
 
 
@@ -28,10 +30,16 @@ def main() -> None:
         parser.error("Provide either --input or --synthetic-demo.")
 
     formula = named_clock_formulas()[args.formula]
-    _, scored = calibrate_biological_age(participants, formula)
+    if args.oof_folds and args.oof_folds > 1:
+        scored = calibrate_biological_age_oof(participants, formula, n_folds=args.oof_folds, seed=args.seed)
+        mode = f"oof_{args.oof_folds}_fold"
+    else:
+        _, scored = calibrate_biological_age(participants, formula)
+        mode = "in_sample"
 
     print(f"Participants: {len(scored)}")
     print(f"Formula: {args.formula}")
+    print(f"Calibration mode: {mode}")
     print(
         "Mean age acceleration: "
         f"{sum(row.age_acceleration for row in scored) / max(len(scored), 1):.4f}"

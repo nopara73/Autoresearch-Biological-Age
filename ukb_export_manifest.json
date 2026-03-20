@@ -1,0 +1,19 @@
+{
+  "required": {
+    "participant_id": ["eid", "participant_id"],
+    "age": ["f.21022.0.0", "age_at_recruitment", "age"],
+    "fitness": ["cardiorespiratory_fitness", "estimated_crf", "vo2max", "vo2_max"],
+    "glycemia": ["f.30750.0.0", "hba1c", "glycated_haemoglobin"],
+    "blood_pressure": ["f.4080.0.0", "f.4080.1.0", "systolic_blood_pressure"],
+    "kidney": ["f.30720.0.0", "cystatin_c"],
+    "inflammation": ["f.30710.0.0", "crp", "c_reactive_protein"],
+    "lung": ["fev1", "forced_expiratory_volume_in_1_second", "fvc", "forced_vital_capacity"]
+  },
+  "preferred": {
+    "central_adiposity": ["f.22407.2.0", "visceral_adipose_tissue", "vat"],
+    "waist_fallback": ["f.48.0.0", "waist_circumference", "waist"],
+    "height_for_ratio": ["standing_height", "height"],
+    "atherogenic_burden": ["f.30640.0.0", "apob", "apolipoprotein_b"],
+    "atherogenic_fallback": ["total_cholesterol", "hdl_cholesterol"]
+  }
+}

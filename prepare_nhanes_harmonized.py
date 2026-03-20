@@ -15,7 +15,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--blood-pressure", required=True, help="Path to blood pressure CSV.")
     parser.add_argument("--cystatin", required=True, help="Path to cystatin C CSV.")
     parser.add_argument("--crp", required=True, help="Path to CRP CSV.")
-    parser.add_argument("--spirometry", required=True, help="Path to spirometry CSV.")
+    parser.add_argument("--spirometry", help="Optional path to spirometry CSV.")
     parser.add_argument("--output", required=True, help="Output path for harmonized CSV.")
     return parser
 
@@ -24,19 +24,20 @@ def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
 
-    merged_rows = merge_component_rows(
-        {
-            "DEMO": args.demo,
-            "CVX": args.cvx,
-            "BMX": args.bmx,
-            "GHB": args.glyco,
-            "LIPIDS": args.lipids,
-            "BPX": args.blood_pressure,
-            "SSCYST": args.cystatin,
-            "CRP": args.crp,
-            "SPX": args.spirometry,
-        }
-    )
+    component_paths = {
+        "DEMO": args.demo,
+        "CVX": args.cvx,
+        "BMX": args.bmx,
+        "GHB": args.glyco,
+        "LIPIDS": args.lipids,
+        "BPX": args.blood_pressure,
+        "SSCYST": args.cystatin,
+        "CRP": args.crp,
+    }
+    if args.spirometry:
+        component_paths["SPX"] = args.spirometry
+
+    merged_rows = merge_component_rows(component_paths)
     participants = harmonize_nhanes_rows(merged_rows)
     write_harmonized_csv(participants, args.output)
 

@@ -1,34 +1,9 @@
 from __future__ import annotations
 
-import csv
-from dataclasses import dataclass
-from pathlib import Path
 from typing import Iterable
 
 from clock_features import ClockProfile, clamp_clock_profile
-
-
-@dataclass(frozen=True)
-class HarmonizedParticipant:
-    seqn: str
-    chronological_age: float
-    profile: ClockProfile
-    central_adiposity_proxy: str
-    atherogenic_proxy: str
-    lung_proxy: str
-
-    def to_row(self) -> dict[str, str]:
-        profile_dict = self.profile.to_dict()
-        row = {
-            "SEQN": self.seqn,
-            "chronological_age": f"{self.chronological_age:.6f}",
-            "central_adiposity_proxy": self.central_adiposity_proxy,
-            "atherogenic_proxy": self.atherogenic_proxy,
-            "lung_proxy": self.lung_proxy,
-        }
-        for key, value in profile_dict.items():
-            row[key] = f"{value:.6f}"
-        return row
+from harmonized_dataset import HarmonizedParticipant, load_harmonized_csv, read_csv_rows, write_harmonized_csv
 
 
 def _parse_float(value: str | None) -> float | None:
@@ -48,11 +23,6 @@ def _mean_available(values: Iterable[float | None]) -> float | None:
     if not present:
         return None
     return sum(present) / len(present)
-
-
-def read_csv_rows(path: str) -> list[dict[str, str]]:
-    with open(path, "r", encoding="utf-8-sig", newline="") as handle:
-        return list(csv.DictReader(handle))
 
 
 def merge_component_rows(component_paths: dict[str, str]) -> list[dict[str, str]]:
@@ -91,10 +61,13 @@ def _equivalent_atherogenic_burden(apob: float | None, total_cholesterol: float 
 def _equivalent_lung_function(fev1: float | None, fvc: float | None) -> tuple[float | None, str]:
     if fev1 is not None:
         return fev1, "FEV1"
-    if fvc is None:
-        return None, "missing"
-    burden_units = (4.5 - fvc) / 0.9
-    return 3.5 - (0.6 * burden_units), "FVC_equivalent"
+    if fvc is not None:
+        burden_units = (4.5 - fvc) / 0.9
+        return 3.5 - (0.6 * burden_units), "FVC_equivalent"
+    # The public NHANES slice chosen for cystatin C and direct fitness does not
+    # expose a matching spirometry component here, so use a neutral placeholder
+    # rather than silently inventing signal from another domain.
+    return 3.5, "neutral_placeholder"
 
 
 def harmonize_nhanes_row(row: dict[str, str]) -> HarmonizedParticipant | None:
@@ -104,8 +77,12 @@ def harmonize_nhanes_row(row: dict[str, str]) -> HarmonizedParticipant | None:
     waist_cm = _parse_float(row.get("BMXWAIST"))
     height_cm = _parse_float(row.get("BMXHT"))
     glycemia = _parse_float(row.get("LBXGH"))
-    total_cholesterol = _parse_float(row.get("LBXTC"))
-    hdl_cholesterol = _parse_float(row.get("LBXHDD"))
+    total_cholesterol = _parse_float(row.get("LBXTC")) or _parse_float(row.get("LB2TC"))
+    hdl_cholesterol = (
+        _parse_float(row.get("LBXHDD"))
+        or _parse_float(row.get("LBDHDD"))
+        or _parse_float(row.get("LB2HDL"))
+    )
     apob = _parse_float(row.get("LBXAPB"))
     systolic = _mean_available(
         [
@@ -116,7 +93,11 @@ def harmonize_nhanes_row(row: dict[str, str]) -> HarmonizedParticipant | None:
         ]
     )
     kidney = _parse_float(row.get("SSCYPC"))
-    inflammation = _parse_float(row.get("LBXCRP")) or _parse_float(row.get("LBXHSCRP"))
+    inflammation = (
+        _parse_float(row.get("LBXCRP"))
+        or _parse_float(row.get("LBXHSCRP"))
+        or _parse_float(row.get("LB2CRP"))
+    )
     fev1 = _parse_float(row.get("SPXFEV1")) or _parse_float(row.get("FEV1"))
     fvc = _parse_float(row.get("SPXFVC")) or _parse_float(row.get("FVC"))
 
@@ -127,7 +108,7 @@ def harmonize_nhanes_row(row: dict[str, str]) -> HarmonizedParticipant | None:
     atherogenic_burden, atherogenic_proxy = _equivalent_atherogenic_burden(apob, total_cholesterol, hdl_cholesterol)
     lung_function, lung_proxy = _equivalent_lung_function(fev1, fvc)
 
-    if atherogenic_burden is None or lung_function is None:
+    if atherogenic_burden is None:
         return None
 
     profile = clamp_clock_profile(
@@ -161,39 +142,3 @@ def harmonize_nhanes_rows(rows: list[dict[str, str]]) -> list[HarmonizedParticip
     return participants
 
 
-def write_harmonized_csv(participants: list[HarmonizedParticipant], output_path: str) -> None:
-    if not participants:
-        raise ValueError("No harmonized participants available to write.")
-
-    fieldnames = list(participants[0].to_row().keys())
-    with open(output_path, "w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fieldnames)
-        writer.writeheader()
-        for participant in participants:
-            writer.writerow(participant.to_row())
-
-
-def load_harmonized_csv(path: str) -> list[HarmonizedParticipant]:
-    rows = read_csv_rows(path)
-    participants: list[HarmonizedParticipant] = []
-    for row in rows:
-        participants.append(
-            HarmonizedParticipant(
-                seqn=row["SEQN"],
-                chronological_age=float(row["chronological_age"]),
-                profile=ClockProfile(
-                    fitness=float(row["fitness"]),
-                    central_adiposity=float(row["central_adiposity"]),
-                    glycemia=float(row["glycemia"]),
-                    atherogenic_burden=float(row["atherogenic_burden"]),
-                    hemodynamic_stress=float(row["hemodynamic_stress"]),
-                    kidney_function=float(row["kidney_function"]),
-                    inflammation=float(row["inflammation"]),
-                    lung_function=float(row["lung_function"]),
-                ),
-                central_adiposity_proxy=row.get("central_adiposity_proxy", "unknown"),
-                atherogenic_proxy=row.get("atherogenic_proxy", "unknown"),
-                lung_proxy=row.get("lung_proxy", "unknown"),
-            )
-        )
-    return participants

@@ -1,0 +1,68 @@
+{
+  "input_rows": 3,
+  "harmonized_participants": 3,
+  "drop_reasons": {},
+  "matched_headers": {
+    "participant_id": [
+      "eid"
+    ],
+    "age": [
+      "f.21022.0.0",
+      "age_at_recruitment"
+    ],
+    "fitness": [
+      "cardiorespiratory_fitness",
+      "estimated_crf",
+      "vo2max"
+    ],
+    "central_adiposity": [
+      "f.22407.2.0",
+      "waist_circumference",
+      "waist"
+    ],
+    "glycemia": [
+      "f.30750.0.0",
+      "hba1c",
+      "glycated_haemoglobin"
+    ],
+    "atherogenic_burden": [
+      "f.30640.0.0",
+      "apolipoprotein_b",
+      "total_cholesterol",
+      "hdl_cholesterol"
+    ],
+    "hemodynamic_stress": [
+      "f.4080.0.0",
+      "f.4080.1.0",
+      "systolic_blood_pressure"
+    ],
+    "kidney": [
+      "f.30720.0.0",
+      "cystatin_c"
+    ],
+    "inflammation": [
+      "f.30710.0.0",
+      "crp",
+      "c_reactive_protein"
+    ],
+    "lung": [
+      "fev1",
+      "forced_expiratory_volume_in_1_second",
+      "forced_vital_capacity"
+    ]
+  },
+  "proxy_counts": {
+    "central_adiposity": {
+      "visceral_adipose_tissue_equivalent": 1,
+      "waist_to_height_ratio": 2
+    },
+    "atherogenic_burden": {
+      "apoB_equivalent": 2,
+      "non_HDL_cholesterol": 1
+    },
+    "lung_function": {
+      "FEV1": 2,
+      "FVC_equivalent": 1
+    }
+  }
+}
