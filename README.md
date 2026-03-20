@@ -8,10 +8,20 @@ The prototype does not estimate true all-cause mortality. It evaluates whether e
 
 The strongest public result in this workspace comes from `NHANES 2009-2010` with linked mortality follow-up through `2019`.
 
-- out-of-fold discrimination is real rather than trivial: c-statistic `0.7592` for `surrogate_score` and `0.7538` for `bio_age`
+- out-of-fold discrimination is real rather than trivial: `75.9%` for `surrogate_score` and `75.4%` for `bio_age`
 - risk stratification is directionally clean: out-of-fold mortality rises across bio-age quartiles from `0.0095` in Q1 to `0.1458` in Q4
 
 These results do not establish clinical validity, but they do suggest that the clock captures nontrivial mortality-related signal in a public cohort.
+
+### Rough ACM Comparison
+
+| Clock | Reported ACM performance | Cohort / framing |
+| --- | --- | --- |
+| `PhenoAge` | about `88%` | NHANES, 10-year mortality AUC |
+| `Bortz` blood-biomarker BA | about `74%` to `76%` | UK Biobank, survival-model c-index |
+| `This clock` | about `75%` to `76%` | NHANES 2009-2010, out-of-fold c-stat |
+
+These percentages are intended as a rough orientation only. They come from different cohorts and closely related but not identical discrimination metrics.
 
 ## Current Mathematical Formula
 
