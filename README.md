@@ -199,6 +199,47 @@ The new 8-domain clock path works like this:
    - `bio_age`
    - `age_acceleration`
 
+## Current Clock Formula
+
+The main clock currently used in this repo is the default logistic expanded-panel formula in `clock_formulas.py`.
+
+It first converts each biomarker into a standardized offset from a healthy reference:
+
+- `fitness_offset = (45 - fitness) / 10`
+- `waist_offset = (waist_to_height_ratio - 0.48) / 0.08`
+- `hba1c_offset = (hba1c - 5.3) / 0.5`
+- `apob_offset = (apob - 110) / 30`
+- `sbp_offset = (systolic_bp - 115) / 15`
+- `kidney_offset = (kidney_function - 0.85) / 0.25`
+- `crp_offset = (crp - 1.0) / 1.5`
+- `lung_offset = (3.5 - fev1) / 0.6`
+
+It then combines them as:
+
+```text
+z =
+  -4.3
+  + 0.9  * fitness_offset
+  + 0.7  * waist_offset
+  + 0.8  * hba1c_offset
+  + 0.5  * apob_offset
+  + 0.45 * sbp_offset
+  + 0.8  * kidney_offset
+  + 0.35 * crp_offset
+  + 0.75 * lung_offset
+  + 0.12 * waist_offset * hba1c_offset
+  + 0.10 * kidney_offset * sbp_offset
+  + 0.08 * crp_offset * lung_offset
+```
+
+The raw clock score is then:
+
+```text
+surrogate_score = 20 / (1 + exp(-z))
+```
+
+Finally, `surrogate_score` is mapped to `bio_age` using a monotone isotonic calibration fit on the reference cohort. In other words, `bio_age` is not a single closed-form equation in the current implementation; it is the calibrated age corresponding to the computed `surrogate_score`.
+
 ## Primary Dataset Path
 
 The richer primary implementation target is:
