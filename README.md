@@ -19,23 +19,44 @@ The current biological-age clock is an eight-domain monotone logistic model. Let
 
 Define the standardized physiologic deviations from the reference state by
 
-`f = (45 - F) / 10`, `w = (W - 0.48) / 0.08`, `h = (H - 5.3) / 0.5`, `a = (A - 110) / 30`, `s = (S - 115) / 15`, `k = (K - 0.85) / 0.25`, `c = (C - 1.0) / 1.5`, and `l = (3.5 - L) / 0.6`.
+$$
+\begin{aligned}
+f &= \frac{45 - F}{10}, &
+w &= \frac{W - 0.48}{0.08}, &
+h &= \frac{H - 5.3}{0.5}, &
+a &= \frac{A - 110}{30}, \\
+s &= \frac{S - 115}{15}, &
+k &= \frac{K - 0.85}{0.25}, &
+c &= \frac{C - 1.0}{1.5}, &
+l &= \frac{3.5 - L}{0.6}.
+\end{aligned}
+$$
 
-The clock's linear predictor is then given by
+The clock's linear predictor is then
 
-`z = -4.3 + 0.9f + 0.7w + 0.8h + 0.5a + 0.45s + 0.8k + 0.35c + 0.75l + 0.12wh + 0.10ks + 0.08cl`.
+$$
+z = -4.3 + 0.9f + 0.7w + 0.8h + 0.5a + 0.45s + 0.8k + 0.35c + 0.75l + 0.12wh + 0.10ks + 0.08cl.
+$$
 
 The raw surrogate score is the bounded logistic transform
 
-`R = 20 / (1 + e^(-z))`,
+$$
+R = \frac{20}{1 + e^{-z}},
+$$
 
-so that `R` lies in the interval `(0, 20)`.
+so that \(R \in (0, 20)\).
 
-Biological age is not represented by a further fixed closed-form expression in the current implementation. Instead, after computing `R`, the pipeline fits a monotone isotonic calibration map `g` from surrogate score to chronological age in the reference cohort and defines biological age as `BA = g(R)`.
+Biological age is not represented by a further fixed closed-form expression in the current implementation. Instead, after computing \(R\), the pipeline fits a monotone isotonic calibration map \(g\) from surrogate score to chronological age in the reference cohort and defines biological age as
 
-Age acceleration is then defined as the residual from the cohort-level linear regression of biological age on chronological age. If chronological age is denoted by `CA` and the fitted regression is `alpha + beta CA`, then
+$$
+BA = g(R).
+$$
 
-`Age Acceleration = BA - (alpha + beta CA)`.
+Age acceleration is then defined as the residual from the cohort-level linear regression of biological age on chronological age. If chronological age is denoted by \(CA\) and the fitted regression is \(\alpha + \beta CA\), then
+
+$$
+\mathrm{AgeAcceleration} = BA - (\alpha + \beta CA).
+$$
 
 Accordingly, the complete mathematical pipeline is: biomarkers to standardized deviations; standardized deviations to the logistic surrogate score `R`; `R` to calibrated biological age `BA`; and `BA` to residualized age acceleration.
 
