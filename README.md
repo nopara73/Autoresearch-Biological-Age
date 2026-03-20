@@ -15,6 +15,15 @@ The prototype does not estimate true all-cause mortality. It evaluates whether e
 - `dataset_variable_map.md`: freezes the first implementation-ready public dataset path and raw column transforms.
 - `prototype_generalization_plan.md`: defines how to evolve the current 4-variable prototype into the expanded panel.
 - `age_calibration_plan.md`: defines how the surrogate score will be mapped to `bio_age` and `age_acceleration`.
+- `clock_features.py`: defines the harmonized 8-domain clock profile and field metadata.
+- `clock_formulas.py`: implements expanded-panel surrogate formula families.
+- `clock_sampler.py`: creates synthetic expanded-panel profiles and dominance pairs.
+- `clock_verification.py`: evaluates expanded-panel formulas under structural validity rules.
+- `run_clock_baseline.py`: compares the expanded-panel formulas on synthetic profiles.
+- `nhanes_loader.py`: merges and harmonizes raw NHANES component CSVs into the clock input space.
+- `prepare_nhanes_harmonized.py`: CLI to build a harmonized NHANES CSV.
+- `calibration.py`: fits a monotone score-to-age calibration and emits `bio_age` and `age_acceleration`.
+- `run_clock_calibration.py`: CLI to calibrate a harmonized dataset or a synthetic demo.
 
 ## How To Run
 
@@ -22,6 +31,30 @@ From the workspace root:
 
 ```bash
 python run_baseline.py
+```
+
+To run the expanded 8-domain structural baseline:
+
+```bash
+python run_clock_baseline.py
+```
+
+To test the age-calibration pipeline without real data:
+
+```bash
+python run_clock_calibration.py --synthetic-demo 200
+```
+
+To prepare a real NHANES-derived harmonized CSV:
+
+```bash
+python prepare_nhanes_harmonized.py --demo DEMO.csv --cvx CVX.csv --bmx BMX.csv --glyco GHB.csv --lipids LIPIDS.csv --blood-pressure BPX.csv --cystatin SSCYST.csv --crp CRP.csv --spirometry SPX.csv --output harmonized_clock.csv
+```
+
+Then calibrate it:
+
+```bash
+python run_clock_calibration.py --input harmonized_clock.csv --output scored_clock.csv
 ```
 
 ## What The Report Means
@@ -75,3 +108,41 @@ Use the harness as the objective function for structured search over the constra
 4. compare the best optimized candidate against `R1`, `R2`, and `R3`
 
 Only after that should you consider adding LLM-guided proposal loops or any external calibration step.
+
+## Expanded Workflow
+
+The new 8-domain clock path works like this:
+
+1. choose the locked panel from `clock_variable_spec.py`
+2. merge raw NHANES component files with `prepare_nhanes_harmonized.py`
+3. transform them into harmonized inputs:
+   - fitness
+   - central adiposity
+   - glycemia
+   - atherogenic burden
+   - hemodynamic stress
+   - kidney function
+   - inflammation
+   - lung function
+4. score participants with one expanded-panel surrogate formula
+5. calibrate score to chronological age
+6. export:
+   - `surrogate_score`
+   - `bio_age`
+   - `age_acceleration`
+
+## Current Public Dataset Path
+
+The first implementation target is:
+
+- `NHANES 1999-2002 + linked mortality`
+
+with these notable proxy rules in code:
+
+- `ApoB` -> non-HDL cholesterol when direct ApoB is unavailable
+- `visceral fat` -> waist-to-height ratio, with an equivalent waist-based fallback
+- `FEV1` -> FVC-equivalent if only FVC is available
+
+## Important Caveat
+
+The expanded calibration scripts are runnable now, but this workspace does not yet contain the raw NHANES files. Until those are supplied, the real-data path should be considered implemented but not fully exercised end-to-end on the target cohort.
