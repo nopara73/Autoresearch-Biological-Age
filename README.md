@@ -6,67 +6,38 @@ The prototype does not estimate true all-cause mortality. It evaluates whether e
 
 ## Current Mathematical Formula
 
-The main clock currently used in this repo is the expanded-panel logistic formula implemented in `clock_formulas.py`.
+The current biological-age clock is an eight-domain monotone logistic model. Let
 
-It first converts each domain into a signed standardized offset from a healthy reference state:
+- `F` denote fitness,
+- `W` denote waist-to-height ratio,
+- `H` denote HbA1c,
+- `A` denote ApoB,
+- `S` denote systolic blood pressure,
+- `K` denote the kidney-function measure used by the harmonized cohort,
+- `C` denote C-reactive protein, and
+- `L` denote lung function measured by `FEV1`.
 
-```text
-fitness_offset = (45 - fitness) / 10
-waist_offset = (waist_to_height_ratio - 0.48) / 0.08
-hba1c_offset = (hba1c - 5.3) / 0.5
-apob_offset = (apob - 110) / 30
-sbp_offset = (systolic_bp - 115) / 15
-kidney_offset = (kidney_function - 0.85) / 0.25
-crp_offset = (crp - 1.0) / 1.5
-lung_offset = (3.5 - fev1) / 0.6
-```
+Define the standardized physiologic deviations from the reference state by
 
-where larger offsets indicate worse physiologic status relative to the reference values.
+`f = (45 - F) / 10`, `w = (W - 0.48) / 0.08`, `h = (H - 5.3) / 0.5`, `a = (A - 110) / 30`, `s = (S - 115) / 15`, `k = (K - 0.85) / 0.25`, `c = (C - 1.0) / 1.5`, and `l = (3.5 - L) / 0.6`.
 
-Those offsets are combined into the linear predictor:
+The clock's linear predictor is then given by
 
-```text
-z =
-  -4.3
-  + 0.9  * fitness_offset
-  + 0.7  * waist_offset
-  + 0.8  * hba1c_offset
-  + 0.5  * apob_offset
-  + 0.45 * sbp_offset
-  + 0.8  * kidney_offset
-  + 0.35 * crp_offset
-  + 0.75 * lung_offset
-  + 0.12 * waist_offset * hba1c_offset
-  + 0.10 * kidney_offset * sbp_offset
-  + 0.08 * crp_offset * lung_offset
-```
+`z = -4.3 + 0.9f + 0.7w + 0.8h + 0.5a + 0.45s + 0.8k + 0.35c + 0.75l + 0.12wh + 0.10ks + 0.08cl`.
 
-The raw clock output is then:
+The raw surrogate score is the bounded logistic transform
 
-```text
-surrogate_score = 20 / (1 + exp(-z))
-```
+`R = 20 / (1 + e^(-z))`,
 
-This yields a bounded score on the interval `(0, 20)`.
+so that `R` lies in the interval `(0, 20)`.
 
-The exported biological age is not produced by a fixed closed-form equation. Instead, `calibration.py` fits a monotone isotonic mapping from `surrogate_score` to chronological age in the reference cohort:
+Biological age is not represented by a further fixed closed-form expression in the current implementation. Instead, after computing `R`, the pipeline fits a monotone isotonic calibration map `g` from surrogate score to chronological age in the reference cohort and defines biological age as `BA = g(R)`.
 
-```text
-bio_age = isotonic_map(surrogate_score)
-```
+Age acceleration is then defined as the residual from the cohort-level linear regression of biological age on chronological age. If chronological age is denoted by `CA` and the fitted regression is `alpha + beta CA`, then
 
-The exported age acceleration is then computed as the residual from the linear fit of biological age on chronological age:
+`Age Acceleration = BA - (alpha + beta CA)`.
 
-```text
-expected_bio_age = intercept + slope * chronological_age
-age_acceleration = bio_age - expected_bio_age
-```
-
-In other words, the complete implemented pipeline is:
-
-```text
-biomarkers -> standardized offsets -> z -> surrogate_score -> isotonic calibration -> bio_age -> residualization -> age_acceleration
-```
+Accordingly, the complete mathematical pipeline is: biomarkers to standardized deviations; standardized deviations to the logistic surrogate score `R`; `R` to calibrated biological age `BA`; and `BA` to residualized age acceleration.
 
 ## How To Run
 
